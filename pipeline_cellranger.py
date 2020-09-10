@@ -61,12 +61,49 @@ from cgatcore import pipeline as P
 
 import sys
 import os
+import re
+import pandas as pd
 
 
 PARAMS = P.get_parameters(
     ["%s/pipeline.yml" % os.path.splitext(__file__)[0],
      "../pipeline.yml",
      "pipeline.yml"])
+
+
+SAMPLES = pd.read_csv("samples.csv")
+SAMPLES.set_index('name', inplace=True)
+print(SAMPLES)
+
+
+@follows(mkdir("count"))
+@transform("data/*_fastqs",
+           regex(r"data/([A-Za-z0-9_]*)_fastqs"),
+           r"count/\1.done")
+def cellranger_count(infile, outfile):
+    '''Docstring'''
+
+    sample = re.search('data/(.*)_fastqs', infile).group(1)
+    print(sample)
+
+    fastqs = SAMPLES['fastqs'][sample]
+    cells = SAMPLES['cells'][sample]
+    chemistry = SAMPLES['chemistry'][sample]
+
+    transcriptome = PARAMS["transcriptome"]
+
+    statement = """
+    cellranger count
+        --id %(sample)s
+        --transcriptome %(transcriptome)s
+        --fastqs %(fastqs)s
+        --expect-cells %(cells)s
+        --chemistry %(chemistry)s &&
+        mv %(sample)s count/ &&
+        touch %(outfile)s
+    """
+
+    P.run(statement)
 
 
 def main(argv=None):
