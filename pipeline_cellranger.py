@@ -73,7 +73,6 @@ PARAMS = P.get_parameters(
 
 SAMPLES = pd.read_csv("samples.csv")
 SAMPLES.set_index('name', inplace=True)
-print(SAMPLES)
 
 
 @follows(mkdir("count"))
@@ -84,7 +83,6 @@ def cellranger_count(infile, outfile):
     '''Docstring'''
 
     sample = re.search('data/(.*)_fastqs', infile).group(1)
-    print(sample)
 
     fastqs = SAMPLES['fastqs'][sample]
     cells = SAMPLES['cells'][sample]
