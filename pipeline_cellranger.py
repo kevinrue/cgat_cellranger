@@ -70,19 +70,21 @@ PARAMS = P.get_parameters(
      "../pipeline.yml",
      "pipeline.yml"])
 
+# prints date and time, e.g. '2020-07-14T10:03:08'
+DATETIME = "date +'%Y-%m-%dT%H:%M:%S'"
 
 SAMPLES = pd.read_csv("samples.csv")
 SAMPLES.set_index('name', inplace=True)
 
 
 @follows(mkdir("count"))
-@transform("data/*_fastqs",
-           regex(r"data/([A-Za-z0-9_]*)_fastqs"),
+@transform("data/*/.sample",
+           regex(r"data/([A-Za-z0-9_]*)/.sample"),
            r"count/\1.done")
 def cellranger_count(infile, outfile):
     '''Docstring'''
 
-    sample = re.search('data/(.*)_fastqs', infile).group(1)
+    sample = re.search('data/([A-Za-z0-9_]*)/.sample', infile).group(1)
 
     fastqs = SAMPLES['fastqs'][sample]
     cells = SAMPLES['cells'][sample]
@@ -90,7 +92,10 @@ def cellranger_count(infile, outfile):
 
     transcriptome = PARAMS["transcriptome"]
 
+    datetime = DATETIME
+
     statement = """
+    %(datetime)s > count/%(sample)s.time &&
     cellranger count
         --id %(sample)s
         --transcriptome %(transcriptome)s
@@ -98,7 +103,8 @@ def cellranger_count(infile, outfile):
         --expect-cells %(cells)s
         --chemistry %(chemistry)s &&
         mv %(sample)s count/ &&
-        touch %(outfile)s
+        touch %(outfile)s &&
+    %(datetime)s >> count/%(sample)s.time
     """
 
     P.run(statement)
