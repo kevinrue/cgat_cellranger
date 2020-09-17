@@ -94,6 +94,11 @@ def cellranger_count(infile, outfile):
 
     datetime = DATETIME
 
+    job_threads = PARAMS["cellranger"]["count"]["threads"]
+    job_memory = PARAMS["cellranger"]["count"]["memory"]
+
+    local_memory = int(job_memory.replace("G", "")) * job_threads
+
     statement = """
     %(datetime)s > count/%(sample)s.time &&
     cellranger count
@@ -101,7 +106,9 @@ def cellranger_count(infile, outfile):
         --transcriptome %(transcriptome)s
         --fastqs %(fastqs)s
         --expect-cells %(cells)s
-        --chemistry %(chemistry)s &&
+        --chemistry %(chemistry)s
+        --localcores %(job_threads)s
+        --localmem %(local_memory)s &&
         mv %(sample)s count/ &&
         touch %(outfile)s &&
     %(datetime)s >> count/%(sample)s.time
